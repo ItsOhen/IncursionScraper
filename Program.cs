@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using HtmlAgilityPack;
 using System.Threading;
@@ -31,6 +32,7 @@ namespace IncursionScraper
                 var table = doc.DocumentNode.SelectSingleNode("//table");
                 if (table.ChildNodes.Count > 5)
                 {
+                    Console.WriteLine($"Reading page number: {pagecounter}");
                     //remove first headers with useless info
                     table.ChildNodes[1].Remove();
                     int c = table.SelectNodes("tbody").Count;
@@ -55,7 +57,7 @@ namespace IncursionScraper
                         }
                     }
                     pagecounter++;
-                    Thread.Sleep(100);
+                    Thread.Sleep(50);
                 }
                 else
                     run = false;

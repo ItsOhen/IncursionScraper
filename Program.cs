@@ -25,6 +25,7 @@ namespace IncursionScraper
         public string Staging { get; set; }
         public string Status { get; set; }
         public string Duration { get; set; }
+        public float SecStatus { get; set; }
         public DateTime ToDateTime()
         {
             string pattern = "MM.dd.yyyy HH:mm";
@@ -48,15 +49,16 @@ namespace IncursionScraper
     class Incursion
     {
         public TimeSpan TimeAlive { get; set; }
-        private Event location;
         public DateTime Started { get; set; }
         public DateTime Mobilized { get; set; }
         public DateTime Withdrawing { get; set; }
         public DateTime Ended { get; set; }
-        public Incursion(Event established)
+        public Solarsystem Location { get; set; }
+        public decimal SecurityStatus { get { return Location.SecStatus; } }
+        public Incursion(Event established, Solarsystem location)
         {
             Started = established.ToDateTime();
-            location = established;
+            Location = location;
         }
         // Return true on update if the incursion ended
         public bool Update(Event ev)
@@ -79,21 +81,34 @@ namespace IncursionScraper
             return false;
         }
     }
+    class Solarsystem
+    {
+        public string Name { get; set; }
+        public decimal SecStatus { get; set; }
+        public Solarsystem(string name, decimal sec)
+        {
+            Name = name;
+            SecStatus = sec;
+        }
+    }
     class Program
     {
         static void Main(string[] args)
         {
             string fn = "dump.json";
+            string fn_map = "mapSolarSystems.json";
             List<Event> events;
+
             events = ReadFromFile(fn);
-            events[0].ToDateTime();
+            Dictionary<string, Solarsystem> systems = ReadSolarsystemMap(fn_map);
+
             List<Incursion> incursions = new List<Incursion>();
             Dictionary<string, Incursion> opened = new Dictionary<string, Incursion>();
             events.Reverse();
             foreach(Event ev in events)
             {
                 if(!opened.ContainsKey(ev.Staging))
-                    opened.Add(ev.Staging, new Incursion(ev));
+                    opened.Add(ev.Staging, new Incursion(ev, systems[ev.Staging]));
                 if (opened[ev.Staging].Update(ev))
                 {
                     incursions.Add(opened[ev.Staging]);
@@ -171,6 +186,34 @@ namespace IncursionScraper
                 ts += inc.TimeAlive;
             }
             return new TimeSpan(ts.Ticks / incursions.Count);
+        }
+        static public TimeSpan AverageDowntime(List<Incursion> incursions)
+        {
+            return TimeSpan.Zero;
+        }
+        static public Dictionary<string, Solarsystem> ReadSolarsystemMap(string fn)
+        {
+            Dictionary<string, Solarsystem> ret = new Dictionary<string, Solarsystem>();
+            using (StreamReader f = new StreamReader(fn))
+            {
+                string json = f.ReadToEnd();
+                JsonDocument doc = JsonDocument.Parse(json);
+                JsonElement root = doc.RootElement;
+                var arr = root.EnumerateArray();
+                while (arr.MoveNext())
+                {
+                    try
+                    {
+                        string name = arr.Current.GetProperty("solarSystemName").GetString();
+                        decimal sec = arr.Current.GetProperty("security").GetDecimal();
+                        ret.Add(name, new Solarsystem(name, sec));
+                        //Console.WriteLine("name {0} sec {1}", arr.Current.GetProperty("solarSystemName"), arr.Current.GetProperty("security"));
+                    }
+                    catch
+                    { }
+                }
+            }
+            return ret;
         }
     }
 }

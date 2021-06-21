@@ -95,6 +95,7 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="dump.json" />
+    <None Include="mapSolarSystems.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
